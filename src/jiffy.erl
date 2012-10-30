@@ -93,8 +93,7 @@ init() ->
         Path ->
             Path
     end,
-    catch(erlang:load_nif(filename:join(PrivDir, "jiffy"), 0)),
-    ok.
+    erlang:load_nif(filename:join(PrivDir, "jiffy"), 0).
 
 
 not_loaded(Line) ->
