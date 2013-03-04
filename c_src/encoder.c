@@ -253,7 +253,6 @@ enc_string(Encoder* e, ERL_NIF_TERM val)
         switch((char) data[i]) {
             case '\"':
             case '\\':
-            case '/':
             case '\b':
             case '\f':
             case '\n':
@@ -300,7 +299,6 @@ enc_string(Encoder* e, ERL_NIF_TERM val)
         switch((char) data[i]) {
             case '\"':
             case '\\':
-            case '/':
                 e->p[e->i++] = '\\';
                 e->u[e->i++] = data[i];
                 i++;
@@ -393,7 +391,6 @@ enc_double(Encoder* e, double val)
 {
     char* start;
     size_t len;
-    size_t i;
 
     if(!enc_ensure(e, 32)) {
         return 0;
@@ -401,22 +398,10 @@ enc_double(Encoder* e, double val)
 
     start = &(e->p[e->i]);
 
-    sprintf(start, "%0.20g", val);
-    len = strlen(start);
-
-    // Check if we have a decimal point
-    for(i = 0; i < len; i++) {
-        if(start[i] == '.' || start[i] == 'e' || start[i] == 'E')
-            goto done;
+    if(!double_to_shortest(start, e->curr->size, &len, val)) {
+        return 0;
     }
 
-    if(len > 29) return 0;
-
-    // Force a decimal point
-    start[len++] = '.';
-    start[len++] = '0';
-
-done:
     e->i += len;
     e->count++;
     return 1;
@@ -705,7 +690,7 @@ encode(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
                 goto done;
             }
         }
-    } while(!enif_is_empty_list(env, stack));
+    }
 
     if(!enc_done(e, &item)) {
         ret = enc_error(e, "internal_error");
